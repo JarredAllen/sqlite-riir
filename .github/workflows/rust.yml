@@ -24,7 +24,7 @@ jobs:
     - name: Clippy
       uses: actions-rs/clippy-check@v1.0.7
       with:
-        token: ${{ secrets.GH_ACTION_READ_TOKEN }}
+        token: ${{ secrets.GITHUB_TOKEN }}
         args: --all-features --all-targets
 
     - name: Build
