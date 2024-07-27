@@ -21,11 +21,19 @@ jobs:
     - name: Rust Cache
       uses: Swatinem/rust-cache@v2.7.3
 
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        components: rustfmt
+
     - name: Clippy
       uses: auguwu/clippy-action@1.4.0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         check-args: --all-features --all-targets
+        
+
+    - name: Rustfmt Check
+      uses: actions-rust-lang/rustfmt@v1
 
     - name: Build
       run: cargo build --verbose
