@@ -70,13 +70,13 @@ const BTREE_PAGE_HEADER_SIZE: usize = 8;
 #[derive(Debug)]
 struct BTreePageHeader {
     /// The start of the first free block in the page, if we have one
-    first_free_block: Option<NonZeroU16>,
+    _first_free_block: Option<NonZeroU16>,
     /// The number of cells in this page
     cell_count: u16,
     /// The offset at which content starts
     cell_content_offset: u32,
     /// The number of fragmented free bytes in the content area
-    fragmented_bytes_count: u8,
+    _fragmented_bytes_count: u8,
 }
 impl BTreePageHeader {
     fn parse(buffer: &[u8]) -> Result<(PageType, Self, usize)> {
@@ -114,10 +114,10 @@ impl BTreePageHeader {
         Ok((
             page_type,
             Self {
-                first_free_block,
+                _first_free_block: first_free_block,
                 cell_count,
                 cell_content_offset,
-                fragmented_bytes_count,
+                _fragmented_bytes_count: fragmented_bytes_count,
             },
             total_len,
         ))
