@@ -23,9 +23,9 @@ jobs:
 
     - name: Clippy
       uses: actions-rs/clippy-check@v1.0.7
-        with:
-          token: ${{ secrets.GH_ACTION_READ_TOKEN }}
-          args: --all-features --all-targets
+      with:
+        token: ${{ secrets.GH_ACTION_READ_TOKEN }}
+        args: --all-features --all-targets
 
     - name: Build
       run: cargo build --verbose
