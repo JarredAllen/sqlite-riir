@@ -53,25 +53,31 @@ impl<File: Read + Seek> Pager<File> {
         })?;
         Page::new(buffer)
     }
+}
 
+impl<File> Pager<File> {
     /// Return the number of pages in the database.
-    pub fn page_count(&mut self) -> Result<usize> {
-        let file_len = self.file.seek(io::SeekFrom::End(0))?;
-        anyhow::ensure!(
-            (file_len as usize) % self.header.page_size() == 0,
-            "Unexpected file length"
-        );
-        Ok((file_len as usize) / self.header.page_size())
+    pub fn page_count(&mut self) -> usize {
+        self.header.page_count as usize
     }
 }
 
 /// The size of the database header.
 pub const DATABASE_HEADER_SIZE: usize = 100;
 
+/// The header to the database
 #[derive(Copy, Clone, Debug)]
 struct DatabaseHeader {
-    /// $\log_2$ of the page size.
+    /// `$\log_2$` of the page size.
+    ///
+    /// The page size will be an integer power of 2, so this stores it more space-efficiently.
     page_size_exp: u8,
+    /// The number of times this file has been changed.
+    _file_change_counter: u32,
+    /// The number of pages in the database.
+    page_count: u32,
+    /// The format of text data in this database.
+    _text_encoding: TextEncoding,
 }
 impl DatabaseHeader {
     fn parse(buffer: &[u8; DATABASE_HEADER_SIZE]) -> Result<Self> {
@@ -85,12 +91,33 @@ impl DatabaseHeader {
             n if n.is_power_of_two() => n.ilog2() as u8,
             _ => anyhow::bail!("Invalid page size value in header"),
         };
-        Ok(Self { page_size_exp })
+        let file_change_counter = u32::from_be_bytes(buffer[24..28].try_into().unwrap());
+        let page_count = u32::from_be_bytes(buffer[28..32].try_into().unwrap());
+        let text_encoding = match u32::from_be_bytes(buffer[56..60].try_into().unwrap()) {
+            1 => TextEncoding::Utf8,
+            2 => TextEncoding::Utf16Le,
+            3 => TextEncoding::Utf16Be,
+            n => anyhow::bail!("Invalid text format: {n}"),
+        };
+        Ok(Self {
+            page_size_exp,
+            _file_change_counter: file_change_counter,
+            page_count,
+            _text_encoding: text_encoding,
+        })
     }
 
+    /// Get the size of a page
     fn page_size(&self) -> usize {
         1 << usize::from(self.page_size_exp)
     }
+}
+
+#[derive(Copy, Clone, Debug)]
+enum TextEncoding {
+    Utf8,
+    Utf16Le,
+    Utf16Be,
 }
 
 struct PageCache {

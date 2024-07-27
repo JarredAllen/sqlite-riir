@@ -36,6 +36,7 @@ impl<'a> BTreeTableLeafPage<'a> {
     }
 
     /// Get the number of cells in this page
+    #[must_use]
     pub fn num_cells(&self) -> usize {
         self.header.cell_count as usize
     }
@@ -63,11 +64,13 @@ impl<'a> Cell<'a> {
     }
 
     /// Get the row ID for this cell
+    #[must_use]
     pub fn row_id(&self) -> i64 {
         self.row_id
     }
 
     /// Get the payload bytes of this cell
+    #[must_use]
     pub fn payload(&self) -> Record<'a> {
         self.record
     }

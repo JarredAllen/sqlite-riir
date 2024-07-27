@@ -24,6 +24,7 @@ impl<'a> Page<'a> {
         Ok(maybe_self)
     }
 
+    #[must_use]
     pub fn parse(&self) -> ParsedPage {
         // We ensure the parse succeeds in the type invariants
         self.parse_checked().unwrap()

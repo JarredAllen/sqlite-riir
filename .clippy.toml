@@ -1,0 +1,8 @@
+# Names to not place in backticks when they appear.
+#
+# This silences clippy lints like `doc-markdown`.
+doc-valid-idents = [
+  "SQLite",
+  # Also include clippy's default values
+  "..",
+]

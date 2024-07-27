@@ -15,12 +15,11 @@ fn parse_varint(buffer: &mut &[u8]) -> Result<i64> {
         if length == 8 {
             acc |= i64::from(*new_byte) << 56;
             break;
-        } else {
-            acc |= i64::from(new_byte & 0x7F) << (length * 7);
-            length += 1;
-            if new_byte & 0x80 == 0 {
-                break;
-            }
+        }
+        acc |= i64::from(new_byte & 0x7F) << (length * 7);
+        length += 1;
+        if new_byte & 0x80 == 0 {
+            break;
         }
     }
     *buffer = &buffer[length..];

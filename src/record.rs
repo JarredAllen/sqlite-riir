@@ -102,6 +102,7 @@ pub enum Value<Blob: AsRef<[u8]>> {
     SQLiteReserved,
 }
 impl<'a, Blob: From<&'a [u8]> + AsRef<[u8]>> Value<Blob> {
+    /// Parse a value for the given type.
     pub fn parse_for_ty(ty: ColumnType, buffer: &mut &'a [u8]) -> Result<Self> {
         Ok(match ty {
             ColumnType::Null => Self::Null,
@@ -226,10 +227,8 @@ impl<Blob: AsRef<[u8]>> fmt::Display for Value<Blob> {
             Self::Null => f.write_str("null"),
             Self::I8(n) => n.fmt(f),
             Self::I16(n) => n.fmt(f),
-            Self::I24(n) => n.fmt(f),
-            Self::I32(n) => n.fmt(f),
-            Self::I48(n) => n.fmt(f),
-            Self::I64(n) => n.fmt(f),
+            Self::I24(n) | Self::I32(n) => n.fmt(f),
+            Self::I48(n) | Self::I64(n) => n.fmt(f),
             Self::F64(n) => n.fmt(f),
             Self::Zero => f.write_str("0"),
             Self::One => f.write_str("1"),
