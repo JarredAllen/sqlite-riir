@@ -22,10 +22,10 @@ jobs:
       uses: Swatinem/rust-cache@v2.7.3
 
     - name: Clippy
-      uses: actions-rs/clippy-check@v1.0.7
+      uses: auguwu/clippy-action@1.4.0
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
-        args: --all-features --all-targets
+        check-args: --all-features --all-targets
 
     - name: Build
       run: cargo build --verbose
