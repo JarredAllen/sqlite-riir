@@ -2,11 +2,18 @@
 
 use anyhow::{Context, Result};
 
-use crate::page::PageType;
+use crate::{page::PageType, parse_varint, record::Record};
 
+/// A parsed leaf in a table's btree
 pub struct BTreeTableLeafPage<'a> {
+    /// The header for the page
     header: super::BTreePageHeader,
+    /// The pointers to cells
+    ///
+    /// Per SQLite format, you need to subtract the cell content offset in [`Self::header`] first
+    /// and then you can index into [`Self::cell_contents`].
     cell_pointers: &'a [u8],
+    /// The contents of the cells
     cell_contents: &'a [u8],
 }
 
@@ -38,13 +45,39 @@ impl<'a> BTreeTableLeafPage<'a> {
     }
 }
 
-#[derive(Debug)]
 pub struct Cell<'a> {
-    contents: &'a [u8],
+    row_id: i64,
+    record: Record<'a>,
+    // TODO Handle cells too large to fit in a page
+}
+impl<'a> Cell<'a> {
+    fn new(length: usize, mut contents: &'a [u8]) -> Result<Self> {
+        let row_id = parse_varint(&mut contents)?;
+        let contents = contents
+            .get(..length)
+            .context("Unexpected end of contents")?;
+        Ok(Self {
+            row_id,
+            record: Record::parse(contents)?,
+        })
+    }
+
+    /// Get the row ID for this cell
+    pub fn row_id(&self) -> i64 {
+        self.row_id
+    }
+
+    /// Get the payload bytes of this cell
+    pub fn payload(&self) -> Record<'a> {
+        self.record
+    }
 }
 
+/// An iterator over the cells in a page.
 struct CellIter<'a> {
+    /// The page we're iterating over
     page: &'a BTreeTableLeafPage<'a>,
+    /// The index of iteration
     idx: usize,
 }
 impl<'a> Iterator for CellIter<'a> {
@@ -75,31 +108,8 @@ impl<'a> Iterator for CellIter<'a> {
     }
 }
 
+/// Parse a cell from the given buffer
 fn parse_cell(mut buffer: &[u8]) -> Result<Cell<'_>> {
-    let length = parse_varint(&mut buffer)?;
-    Ok(Cell {
-        contents: &buffer
-            .get(..length as usize)
-            .context("Unexpected end of page")?,
-    })
-}
-
-fn parse_varint(buffer: &mut &[u8]) -> Result<i64> {
-    let mut acc = 0;
-    let mut length = 0;
-    loop {
-        let new_byte = buffer.get(length).context("Unexpected end of page")?;
-        if length == 8 {
-            acc |= i64::from(*new_byte) << 56;
-            break;
-        } else {
-            acc |= i64::from(new_byte & 0x7F) << length * 7;
-            length += 1;
-            if new_byte & 0x80 == 0 {
-                break;
-            }
-        }
-    }
-    *buffer = &buffer[length..];
-    Ok(acc)
+    let length = parse_varint(&mut buffer)? as usize;
+    Cell::new(length, buffer)
 }
