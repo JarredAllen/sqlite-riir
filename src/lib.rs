@@ -1,8 +1,11 @@
 use anyhow::{Context, Result};
 
+mod db;
 pub mod page;
 pub mod pager;
 pub mod record;
+
+pub use db::Database;
 
 /// Parse a variable-length integer
 fn parse_varint(buffer: &mut &[u8]) -> Result<i64> {

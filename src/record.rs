@@ -84,7 +84,7 @@ impl<'a> Iterator for HeaderTypesIter<'a> {
 }
 
 /// A value a column of a record can have
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Value<Blob: AsRef<[u8]>> {
     // TODO More efficient storage of `i24` and `i48`
     Null,

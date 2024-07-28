@@ -11,7 +11,7 @@ fn main() -> anyhow::Result<()> {
             .context("Failed to read database")?;
     let page_count = pager.page_count();
     println!("\n{page_count} pages:\n\n");
-    for page_idx in 0..page_count {
+    for page_idx in 1..=page_count {
         match pager.read_page(page_idx) {
             Ok(page) => match page.parse() {
                 ParsedPage::BTreeTableLeaf(page) => {

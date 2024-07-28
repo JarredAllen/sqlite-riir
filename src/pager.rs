@@ -40,10 +40,17 @@ impl<File: Read> Pager<File> {
 impl<File: Read + Seek> Pager<File> {
     /// Read the given page.
     pub fn read_page(&mut self, page_idx: usize) -> Result<Page> {
+        anyhow::ensure!(
+            page_idx <= self.header.page_count as usize,
+            "`page_idx` out of bounds"
+        );
         let buffer = self.page_cache.get_or_load(page_idx, |buf, page_idx| {
             self.file
                 .seek(io::SeekFrom::Start(
-                    (self.header.page_size() * page_idx) as u64,
+                    (self.header.page_size()
+                        * (page_idx
+                            .checked_sub(1)
+                            .context("page index out of bounds")?)) as u64,
                 ))
                 .context("Error seeking in database")?;
             self.file
