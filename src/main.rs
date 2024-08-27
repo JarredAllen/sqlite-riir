@@ -5,10 +5,10 @@ use std::fs::File;
 use anyhow::Context;
 use sqlite_rs::{page::ParsedPage, pager::Pager};
 
-fn main() -> anyhow::Result<()> {
-    let mut pager =
-        Pager::new(File::open("./test-data/minimal-test.sqlite").context("Failed to open file")?)
-            .context("Failed to read database")?;
+/// Print the contents of a database file.
+fn display_database(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
+    let mut pager = Pager::new(File::open(path).context("Failed to open file")?)
+        .context("Failed to read database")?;
     let page_count = pager.page_count();
     println!("\n{page_count} pages:\n\n");
     for page_idx in 1..=page_count {
@@ -33,4 +33,11 @@ fn main() -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+fn main() -> anyhow::Result<()> {
+    let file_path = std::env::args_os()
+        .nth(1)
+        .unwrap_or(std::ffi::OsString::from("./test-data/minimal-test.sqlite"));
+    display_database(file_path)
 }
