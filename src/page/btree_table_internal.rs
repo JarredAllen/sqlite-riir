@@ -45,6 +45,7 @@ impl<'a> BTreeTableInternalPage<'a> {
     }
 
     /// Get the index of the rightmost (greatest) child page.
+    #[must_use]
     pub fn rightmost_child_idx(&self) -> u32 {
         self.rightmost_pointer
     }
