@@ -1,5 +1,6 @@
 //! Implementation of the various page types
 
+pub mod btree_table_internal;
 pub mod btree_table_leaf;
 
 use std::num::NonZeroU16;
@@ -40,6 +41,10 @@ impl<'a> Page<'a> {
         match page_type {
             PageType::BTreeTableLeaf => btree_table_leaf::BTreeTableLeafPage::new(self.contents)
                 .map(ParsedPage::BTreeTableLeaf),
+            PageType::BTreeTableInternal => {
+                btree_table_internal::BTreeTableInternalPage::new(self.contents)
+                    .map(ParsedPage::BTreeTableInternal)
+            }
         }
     }
 }
@@ -48,6 +53,8 @@ impl<'a> Page<'a> {
 pub enum ParsedPage<'a> {
     /// A leaf in the table btree.
     BTreeTableLeaf(btree_table_leaf::BTreeTableLeafPage<'a>),
+    /// A leaf in the table btree.
+    BTreeTableInternal(btree_table_internal::BTreeTableInternalPage<'a>),
 }
 
 /// The page types
@@ -55,10 +62,13 @@ pub enum ParsedPage<'a> {
 pub enum PageType {
     /// A leaf in the table btree.
     BTreeTableLeaf,
+    /// An internal page in the table btree.
+    BTreeTableInternal,
 }
 impl PageType {
     fn from_header_byte(byte: u8) -> Result<Self> {
         Ok(match byte {
+            0x05 => Self::BTreeTableInternal,
             0x0d => Self::BTreeTableLeaf,
             _ => anyhow::bail!("Unrecognized header byte: {byte}"),
         })

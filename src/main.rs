@@ -17,7 +17,7 @@ fn display_database(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
                 ParsedPage::BTreeTableLeaf(page) => {
                     println!(
                         "Page {page_idx}: Table btree leaf with {} cells",
-                        page.num_cells()
+                        page.num_cells(),
                     );
                     for cell in page.cells() {
                         println!("Cell {}:", cell.row_id());
@@ -26,6 +26,21 @@ fn display_database(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
                         }
                         println!();
                     }
+                    println!();
+                }
+                ParsedPage::BTreeTableInternal(page) => {
+                    println!(
+                        "Page {page_idx}: Table btree internal with {} cells",
+                        page.num_cells(),
+                    );
+                    for (idx, cell) in page.cells().enumerate() {
+                        println!("Cell {idx}: ");
+                        println!("Key: {}", cell.key);
+                        println!("Left Child Page: {}", cell.left_child_page);
+                        println!();
+                    }
+                    println!("Right-most child Page: {}", page.rightmost_child_idx());
+                    println!();
                     println!();
                 }
             },

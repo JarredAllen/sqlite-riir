@@ -39,6 +39,10 @@ impl Database {
             #[allow(clippy::infallible_destructuring_match)] // there will be more variants later
             let schema_page = match schema_page.parse() {
                 ParsedPage::BTreeTableLeaf(leaf_page) => leaf_page,
+                ParsedPage::BTreeTableInternal(_) => {
+                    // TODO implement scanning of trees to list all cells
+                    anyhow::bail!("too many tables to fit in one page")
+                }
             };
             schema_page
                 .cells()
