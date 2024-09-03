@@ -36,7 +36,6 @@ impl Database {
                 .root_page_for_table("sqlite_schema")
                 .context("Error loading `sqlite_schema` table")?
                 .context("Missing `sqlite_schema` page")?;
-            #[allow(clippy::infallible_destructuring_match)] // there will be more variants later
             let schema_page = match schema_page.parse() {
                 ParsedPage::BTreeTableLeaf(leaf_page) => leaf_page,
                 ParsedPage::BTreeTableInternal(_) => {
