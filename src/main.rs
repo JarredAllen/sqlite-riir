@@ -54,5 +54,32 @@ fn main() -> anyhow::Result<()> {
     let file_path = std::env::args_os()
         .nth(1)
         .unwrap_or(std::ffi::OsString::from("./test-data/minimal-test.sqlite"));
-    display_database(file_path)
+    let mut readline =
+        rustyline::DefaultEditor::new().context("Error setting up readline instance")?;
+    loop {
+        match readline.readline("sqlite-riir>> ") {
+            Ok(line) => {
+                if line.trim() == ".debug" {
+                    if let Err(e) = display_database(&file_path) {
+                        println!(
+                            "{:?}",
+                            e.context(format!(
+                                "Error displaying database at {}",
+                                std::path::Path::new(&file_path).display()
+                            ))
+                        );
+                    }
+                } else {
+                    println!("Unrecognized command: {line:?}");
+                }
+            }
+            Err(rustyline::error::ReadlineError::Eof) => break,
+            Err(rustyline::error::ReadlineError::Interrupted) => {
+                println!("^C");
+                break;
+            }
+            Err(e) => return Err(e).context("Failed to read command from CLI"),
+        }
+    }
+    Ok(())
 }

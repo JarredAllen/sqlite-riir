@@ -1,5 +1,8 @@
 use anyhow::{Context, Result};
 
+// `rustyline` is needed for the CLI interface
+use rustyline as _;
+
 mod db;
 pub mod page;
 pub mod pager;

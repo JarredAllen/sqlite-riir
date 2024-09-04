@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.86"
+rustyline = "14.0.0"
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "warn"
