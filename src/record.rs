@@ -218,6 +218,27 @@ impl<Blob: AsRef<[u8]>> Value<Blob> {
             Self::SQLiteReserved => ColumnType::SQLiteReserved,
         }
     }
+
+    /// Get `self` as a utf-8 string, if valid.
+    pub fn as_str(&self) -> Option<&str> {
+        match self {
+            Self::String(blob) => std::str::from_utf8(blob.as_ref()).ok(),
+            _ => None,
+        }
+    }
+
+    /// Get `self` as a `usize`, if a number that fits.
+    pub fn as_usize(&self) -> Option<usize> {
+        match self {
+            Self::Zero => Some(0),
+            Self::One => Some(1),
+            Self::I8(n) => usize::try_from(*n).ok(),
+            Self::I16(n) => usize::try_from(*n).ok(),
+            Self::I24(n) | Self::I32(n) => usize::try_from(*n).ok(),
+            Self::I48(n) | Self::I64(n) => usize::try_from(*n).ok(),
+            _ => None,
+        }
+    }
 }
 type OwnedValue = Value<Box<[u8]>>;
 

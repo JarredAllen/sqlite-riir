@@ -11,11 +11,16 @@ pub struct TableIter<'a> {
 
 impl<'a> TableIter<'a> {
     pub fn new(db: &'a mut Database, table_name: &str) -> Result<Self> {
-        let root_page_num = db
-            .table_root_page_indices_by_name()?
-            .find(|(name, _)| name == table_name)
-            .with_context(|| format!("Failed to find table {table_name}"))?
-            .1;
+        const SCHEMA_TABLE_NAMES: &[&str] = &["sqlite_schema", "sqlite_master"];
+        let root_page_num = if SCHEMA_TABLE_NAMES.contains(&table_name) {
+            // schema table is always rooted at the first page
+            1
+        } else {
+            db.table_root_page_indices_by_name()?
+                .find(|(name, _)| name == table_name)
+                .with_context(|| format!("Failed to find table {table_name}"))?
+                .1
+        };
         Ok(Self {
             db,
             stack: vec![StackFrame {
@@ -68,7 +73,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_with_leaf_schema_table() {
+    fn test_with_leaf_root() {
         let mut db = Database::new(
             File::open("./test-data/minimal-test.sqlite").expect("Failed to open database file"),
         )
@@ -78,6 +83,18 @@ mod tests {
                 .expect("Failed to make iterator")
                 .count(),
             2,
+        );
+        assert_eq!(
+            TableIter::new(&mut db, "t1")
+                .expect("Failed to make iterator")
+                .count(),
+            0,
+        );
+        assert_eq!(
+            TableIter::new(&mut db, "t2")
+                .expect("Failed to make iterator")
+                .count(),
+            0,
         );
     }
 }

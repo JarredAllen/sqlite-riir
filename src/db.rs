@@ -4,11 +4,7 @@ use std::fs::File;
 
 use anyhow::{Context, Result};
 
-use crate::{
-    page::{Page, ParsedPage},
-    pager::Pager,
-    record::Value,
-};
+use crate::{pager::Pager, table_iter::TableIter};
 
 /// A SQLite database
 pub struct Database {
@@ -18,7 +14,7 @@ pub struct Database {
 
 impl Database {
     pub fn new(file: File) -> Result<Self> {
-        let pager = Pager::new(file)?;
+        let pager = Pager::new(file).context("Failed to parse file")?;
         Ok(Self { pager })
     }
 
@@ -32,58 +28,13 @@ impl Database {
         &mut self,
     ) -> Result<impl Iterator<Item = (String, usize)> + '_> {
         Ok([("sqlite_schema".to_owned(), 1)].into_iter().chain({
-            let schema_page = self
-                .root_page_for_table("sqlite_schema")
-                .context("Error loading `sqlite_schema` table")?
-                .context("Missing `sqlite_schema` page")?;
-            let schema_page = match schema_page.parse() {
-                ParsedPage::BTreeTableLeaf(leaf_page) => leaf_page,
-                ParsedPage::BTreeTableInternal(_) => {
-                    // TODO implement scanning of trees to list all cells
-                    anyhow::bail!("too many tables to fit in one page")
+            TableIter::new(self, "sqlite_schema")?.filter_map(|cell| {
+                if cell.first()?.as_str()? != "table" {
+                    return None;
                 }
-            };
-            schema_page
-                .cells()
-                .filter_map(|cell| {
-                    let mut values = cell.payload().value_iter();
-                    if values.next()? != Value::String(&b"table"[..]) {
-                        return None;
-                    }
-                    let table_name = match values.next()? {
-                        // TODO Support non-UTF8 tables
-                        Value::String(table_name) => std::str::from_utf8(table_name).ok()?,
-                        _ => return None,
-                    };
-                    values.next();
-                    let table_value = match values.next()? {
-                        Value::I8(n) => usize::from(n as u8),
-                        _ => return None,
-                    };
-                    Some((table_name.to_owned(), table_value))
-                })
-                .collect::<Vec<_>>()
+                Some((cell.get(2)?.as_str()?.to_owned(), cell.get(3)?.as_usize()?))
+            })
         }))
-    }
-
-    /// Get the root page for the given table.
-    fn root_page_for_table(&mut self, table_name: &str) -> Result<Option<Page<'_>>> {
-        const SCHEMA_TABLE_NAMES: &[&str] = &["sqlite_schema", "sqlite_master"];
-        if SCHEMA_TABLE_NAMES.contains(&table_name) {
-            // schema table is always rooted at the first page
-            return Ok(Some(self.pager.read_page(1)?));
-        }
-        let Some((_, target_page_num)) = self
-            .table_root_page_indices_by_name()?
-            .find(|(name, _)| name == table_name)
-        else {
-            return Ok(None);
-        };
-        Ok(Some(
-            self.pager
-                .read_page(target_page_num)
-                .context("Error reading requested page")?,
-        ))
     }
 }
 
