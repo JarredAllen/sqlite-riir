@@ -3,7 +3,7 @@
 use std::fs::File;
 
 use anyhow::Context;
-use sqlite_rs::{page::ParsedPage, pager::Pager, table_iter::TableIter, Database};
+use sqlite_riir::{page::ParsedPage, pager::Pager, table_iter::TableIter, Database};
 
 /// Print the contents of a database file.
 fn display_database(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
