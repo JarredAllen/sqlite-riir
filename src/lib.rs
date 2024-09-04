@@ -7,6 +7,7 @@ mod db;
 pub mod page;
 pub mod pager;
 pub mod record;
+pub mod table_iter;
 
 pub use db::Database;
 

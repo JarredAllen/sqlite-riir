@@ -3,7 +3,7 @@
 use std::fs::File;
 
 use anyhow::Context;
-use sqlite_rs::{page::ParsedPage, pager::Pager};
+use sqlite_rs::{page::ParsedPage, pager::Pager, table_iter::TableIter, Database};
 
 /// Print the contents of a database file.
 fn display_database(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
@@ -50,6 +50,17 @@ fn display_database(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn display_tables(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
+    let mut db = Database::new(File::open(path).context("Failed to open file")?)
+        .context("Failed to read database")?;
+    for table in
+        TableIter::new(&mut db, "sqlite_schema").context("Failed to create table iterator")?
+    {
+        println!("Table: {table:?}");
+    }
+    Ok(())
+}
+
 fn main() -> anyhow::Result<()> {
     let file_path = std::env::args_os()
         .nth(1)
@@ -59,18 +70,34 @@ fn main() -> anyhow::Result<()> {
     loop {
         match readline.readline("sqlite-riir>> ") {
             Ok(line) => {
-                if line.trim() == ".debug" {
-                    if let Err(e) = display_database(&file_path) {
-                        println!(
-                            "{:?}",
-                            e.context(format!(
-                                "Error displaying database at {}",
-                                std::path::Path::new(&file_path).display()
-                            ))
-                        );
+                if let Some(debug_cmd) = line.strip_prefix('.') {
+                    match debug_cmd {
+                        "debug" => {
+                            if let Err(e) = display_database(&file_path) {
+                                println!(
+                                    "{:?}",
+                                    e.context(format!(
+                                        "Error displaying database at {}",
+                                        std::path::Path::new(&file_path).display()
+                                    ))
+                                );
+                            }
+                        }
+                        "tables" => {
+                            if let Err(e) = display_tables(&file_path) {
+                                println!(
+                                    "{:?}",
+                                    e.context(format!(
+                                        "Error displaying database at {}",
+                                        std::path::Path::new(&file_path).display()
+                                    ))
+                                );
+                            }
+                        }
+                        _ => println!("Unrecognized debug command: {debug_cmd:?}"),
                     }
                 } else {
-                    println!("Unrecognized command: {line:?}");
+                    println!("TODO support real commands");
                 }
             }
             Err(rustyline::error::ReadlineError::Eof) => break,

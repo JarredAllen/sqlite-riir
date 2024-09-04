@@ -13,7 +13,7 @@ use crate::{
 /// A SQLite database
 pub struct Database {
     /// Paging on the file
-    pager: Pager<File>,
+    pub(crate) pager: Pager<File>,
 }
 
 impl Database {
@@ -28,7 +28,7 @@ impl Database {
             .map(|(name, _)| name))
     }
 
-    fn table_root_page_indices_by_name(
+    pub(crate) fn table_root_page_indices_by_name(
         &mut self,
     ) -> Result<impl Iterator<Item = (String, usize)> + '_> {
         Ok([("sqlite_schema".to_owned(), 1)].into_iter().chain({
