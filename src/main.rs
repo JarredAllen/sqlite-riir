@@ -56,7 +56,14 @@ fn display_tables(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
     for table in
         TableIter::new(&mut db, "sqlite_schema").context("Failed to create table iterator")?
     {
-        println!("Table: {table:?}");
+        println!(
+            "Table {table_name}: \"{create_command}\" @ {page_num}",
+            table_name = table[2].as_str().expect("invalid string in table name"),
+            create_command = table[4].as_str().expect("invalid string in table name"),
+            page_num = table[3]
+                .as_usize()
+                .expect("invalid number in table root page number"),
+        );
     }
     Ok(())
 }
