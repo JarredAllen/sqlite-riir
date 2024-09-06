@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.86"
 rustyline = "14.0.0"
+sqlparser = "0.50.0"
 
 [lints.rust]
 unsafe_op_in_unsafe_fn = "warn"
@@ -60,5 +61,4 @@ undocumented_unsafe_blocks = "warn"
 unnecessary_safety_comment = "warn"
 unnecessary_safety_doc = "warn"
 unnecessary_self_imports = "warn"
-unneeded_field_pattern = "warn"
 unseparated_literal_suffix = "warn"

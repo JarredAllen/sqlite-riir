@@ -240,7 +240,7 @@ impl<Blob: AsRef<[u8]>> Value<Blob> {
         }
     }
 }
-type OwnedValue = Value<Box<[u8]>>;
+pub type OwnedValue = Value<Box<[u8]>>;
 
 impl<Blob: AsRef<[u8]>> fmt::Display for Value<Blob> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

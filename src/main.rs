@@ -3,7 +3,7 @@
 use std::fs::File;
 
 use anyhow::Context;
-use sqlite_riir::{page::ParsedPage, pager::Pager, table_iter::TableIter, Database};
+use sqlite_riir::{page::ParsedPage, pager::Pager, Database};
 
 /// Print the contents of a database file.
 fn display_database(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
@@ -50,21 +50,24 @@ fn display_database(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn display_tables(path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
-    let mut db = Database::new(File::open(path).context("Failed to open file")?)
-        .context("Failed to read database")?;
-    for table in
-        TableIter::new(&mut db, "sqlite_schema").context("Failed to create table iterator")?
-    {
+fn display_tables(db: &mut Database) -> anyhow::Result<()> {
+    let statement = sqlparser::parser::Parser::parse_sql(
+        &sqlparser::dialect::SQLiteDialect {},
+        "SElECT * FROM sqlite_schema",
+    )
+    .context("failed to parse command")?;
+    anyhow::ensure!(statement.len() == 1, "command parsed unexpectedly");
+    db.execute_statement(&statement[0], |table| {
         println!(
             "Table {table_name}: \"{create_command}\" @ {page_num}",
-            table_name = table[2].as_str().expect("invalid string in table name"),
-            create_command = table[4].as_str().expect("invalid string in table name"),
+            table_name = table[2].as_str().context("invalid string in table name")?,
+            create_command = table[4].as_str().context("invalid string in table name")?,
             page_num = table[3]
                 .as_usize()
-                .expect("invalid number in table root page number"),
+                .context("invalid number in table root page number")?,
         );
-    }
+        Ok(())
+    })?;
     Ok(())
 }
 
@@ -72,6 +75,8 @@ fn main() -> anyhow::Result<()> {
     let file_path = std::env::args_os()
         .nth(1)
         .unwrap_or(std::ffi::OsString::from("./test-data/minimal-test.sqlite"));
+    let mut db = Database::new(File::open(&file_path).context("Failed to open file")?)
+        .context("Failed to read database")?;
     let mut readline =
         rustyline::DefaultEditor::new().context("Error setting up readline instance")?;
     loop {
@@ -91,7 +96,7 @@ fn main() -> anyhow::Result<()> {
                             }
                         }
                         "tables" => {
-                            if let Err(e) = display_tables(&file_path) {
+                            if let Err(e) = display_tables(&mut db) {
                                 println!(
                                     "{:?}",
                                     e.context(format!(
@@ -104,7 +109,28 @@ fn main() -> anyhow::Result<()> {
                         _ => println!("Unrecognized debug command: {debug_cmd:?}"),
                     }
                 } else {
-                    println!("TODO support real commands");
+                    let statements = match sqlparser::parser::Parser::parse_sql(
+                        &sqlparser::dialect::SQLiteDialect {},
+                        &line,
+                    ) {
+                        Ok(cmd) => cmd,
+                        Err(e) => {
+                            println!(
+                                "{:?}",
+                                anyhow::Error::new(e).context("Error parsing command")
+                            );
+                            continue;
+                        }
+                    };
+                    for statement in statements {
+                        if let Err(e) = db.execute_statement(&statement, |row| {
+                            println!("{row:?}");
+                            Ok(())
+                        }) {
+                            println!("{:?}", e.context("Error running given command"));
+                            break;
+                        }
+                    }
                 }
             }
             Err(rustyline::error::ReadlineError::Eof) => break,
